@@ -9,31 +9,34 @@ from network import BiRNN
 from preprocess import ACTION_TYPE as act
 from preprocess import CORRECTNESS as cor
 
+DATASET_NAME = 'dataset_lin.pkl'
+
 # Device configuration
 device  = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Hyper-parameters
-sequence_length = 280
-input_size = 36
-hidden_size = 64
-num_layers = 2
+sequence_length = 0  # this parameter will be renewed in 'dataloader' function
+input_size = 36  # including 6 channels of 6 IMU sensors, totally 36 channels
+hidden_size = 64  # parameters for LSTM (Long Short Term Memory)
+num_layers = 2  # the depth of Deep-RNNs
 num_classes = 3
-batch_size = 30
-num_epochs = 50
-learning_rate = 0.01
+batch_size = 45
+num_epochs = 120
+learning_rate = 0.1
+training_test_ratio = 0.75
 
 # Test parameters
 TEST_NUM = 1
 
 
 def visialized():
-    pkl_file = open('dataset_lin.pkl', 'rb')
+    pkl_file = open(DATASET_NAME, 'rb')
     dataset = pickle.load(pkl_file)
-    showimage(dataset[0:12])
+    show_image(dataset[0:12])
     pkl_file.close()
 
 
-def showimage(data):
+def show_image(data):
     figure_num = len(data)
     for i in range(figure_num):
         x = data[i][0][:, 0]
@@ -66,37 +69,68 @@ def variance_and_bias_analysis():
     pass
 
 
-# Load the data for standing sub-network
-def standing_dataloader(training_test_ratio=0.75):
+# Load the data sub-network
+def dataloader(data_type = 'standing', training_test_ratio = 0.75):
     X = []
     Y = []
-    pkl_file = open('dataset_lin.pkl', 'rb')
+    pkl_file = open(DATASET_NAME, 'rb')
     dataset = pickle.load(pkl_file)
     dataset_size = len(dataset)
+    # print(dataset_size)
 
     MAX_T = 0
     for i in range(dataset_size):
         dataset[i][0] = dataset[i][0][:, 1:]
         MAX_T = max(MAX_T, dataset[i][0].shape[0])
+
+    # renew the parameter of sequence length
+    global sequence_length
+    sequence_length = MAX_T
+
     for i in range(dataset_size):
         X.append(np.pad(dataset[i][0], ((0, MAX_T-dataset[i][0].shape[0]), (0, 0)), 'constant', constant_values=0))
-        if dataset[i][1] != 1:
-            Y.append(0)
-        else:
-            if dataset[i][2] == 0:
-                Y.append(1)
+        if data_type == 'standing':
+            if dataset[i][1] != 1:
+                Y.append(0)
             else:
-                Y.append(2)
+                if dataset[i][2] == 0:
+                    Y.append(1)
+                else:
+                    Y.append(2)
+        elif data_type == 'turning':
+            if dataset[i][1] != 2:
+                Y.append(0)
+            else:
+                if dataset[i][2] == 0:
+                    Y.append(1)
+                else:
+                    Y.append(2)
+
+    # divide the whole dataset as training dataset and test dataset
     index = [i for i in range(len(X))]
-    training_index = random.sample(index, int(dataset_size*training_test_ratio))
+    index_0_ori = [i for i in index if Y[i] == 0]
+    index_0 = random.sample(index_0_ori, int(len(index_0_ori) * 0.5))
+    index_1 = [i for i in index if Y[i] == 1]
+    index_2 = [i for i in index if Y[i] == 2]
+
+    # check the length of index_0 - index_2
+    index_0_size, index_1_size, index_2_size = len(index_0), len(index_1), len(index_2)
+    # print(index_0_size, index_1_size, index_2_size)
+
+    training_index = []
+    training_index += random.sample(index_0, int(index_0_size*training_test_ratio))
+    training_index += random.sample(index_1, int(index_1_size*training_test_ratio))
+    training_index += random.sample(index_2, int(index_2_size*training_test_ratio))
     test_index = []
-    for num in index:
+    for num in index_0 + index_1 + index_2:
         if num not in training_index:
             test_index.append(num)
     X_training = [X[i] for i in training_index]
     Y_training = [Y[i] for i in training_index]
     X_test = [X[i] for i in test_index]
     Y_test = [Y[i] for i in test_index]
+
+    # change the raw data form to pytorch data form
     X_training, Y_training, X_test, Y_test = np.array(X_training), np.array(Y_training), np.array(X_test), np.array(Y_test)
 
     # check the dimensions
@@ -115,7 +149,7 @@ def main():
 
     for t in range(TEST_NUM):
         losses = []
-        X_training, Y_training, X_test, Y_test = standing_dataloader()
+        X_training, Y_training, X_test, Y_test = dataloader(data_type='turning', training_test_ratio=training_test_ratio)
 
         model = BiRNN(input_size, hidden_size, num_layers, num_classes).to(device)
         # Loss and optimizer
@@ -146,11 +180,11 @@ def main():
                 loss.backward()
                 optimizer.step()
 
-                if (i + 1) % 1 == 0:
-                    print('Trials [{}/{}], Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
-                          .format(t + 1, TEST_NUM, epoch + 1, num_epochs, (i + 1), total_step, loss.item()))
+                if (epoch + 1) % 5 == 0:
+                    print('Trials [{}/{}], Epoch [{}/{}]], Loss: {:.4f}'
+                        .format(t + 1, TEST_NUM, epoch + 1, num_epochs, loss.item()))
 
-                losses.append(loss.item())
+                    losses.append(loss.item())
 
         # Test the model
         with torch.no_grad():

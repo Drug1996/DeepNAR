@@ -19,7 +19,7 @@ class RNN(nn.Module):
         c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
 
         # Forward propagate LSTM
-        out, _ = self.lstm(x, (h0, c0)) # out: tensor of shape (batch_size, seq_legnth, hidden_size)
+        out, _ = self.lstm(x, (h0, c0)) # out: tensor of shape (batch_size, seq_length, hidden_size)
 
         # Decode the hidden state of the last time step
         out = self.fc(out[:, -1, :])
