@@ -1,18 +1,16 @@
 import pickle
-import matplotlib.pyplot as plt
 import numpy as np
 import random
 import torch
 import torch.nn as nn
 from network import RNN
 from network import BiRNN
-from preprocess import ACTION_TYPE as act
-from preprocess import CORRECTNESS as cor
+from visualization import variance_and_bias_analysis, show, save
 
 DATASET_NAME = 'dataset_lin.pkl'
 
 # Device configuration
-device  = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Hyper-parameters
 sequence_length = 0  # this parameter will be renewed in 'dataloader' function
@@ -27,50 +25,15 @@ training_test_ratio = 0.75
 
 # Test parameters
 TEST_NUM = 1
-
-
-def visialized():
-    pkl_file = open(DATASET_NAME, 'rb')
-    dataset = pickle.load(pkl_file)
-    show_image(dataset[0:12])
-    pkl_file.close()
-
-
-def show_image(data):
-    figure_num = len(data)
-    for i in range(figure_num):
-        x = data[i][0][:, 0]
-        y = data[i][0][:, 1:]
-        action_type = data[i][1]
-        action_type = list(act.keys())[list(act.values()).index(action_type)]
-        correctness = data[i][2]
-        correctness = list(cor.keys())[list(cor.values()).index(correctness)]
-        # print(action_type, correctness)
-        plt.subplot(4, (figure_num/4), i+1)
-        plt.plot(x, y)
-        plt.title(action_type+' '+correctness, fontsize='x-small')
-    plt.show()
-
-
-def loss_analysis(losseslist):
-    plt.figure(figsize=(10, 5))
-    trials_num = len(losseslist)
-    for i in range(trials_num):
-        plt.subplot(1, trials_num, i+1)
-        x = list(range(1, len(losseslist[i])+1))
-        y = losseslist[i]
-        plt.plot(x, y, marker='*')
-        plt.xlabel(r'$batches\ /\ times$')
-        plt.ylabel(r'$loss$')
-        plt.title('Losses Analysis for Trial ' + str(i))
-
-
-def variance_and_bias_analysis():
-    pass
+RANDOM_SEED_NUM = 7
+PYTORCH_SEED_NUM = list(range(4, 5))
 
 
 # Load the data sub-network
-def dataloader(data_type = 'standing', training_test_ratio = 0.75):
+def dataloader(data_type='standing', training_test_ratio=0.75):
+    # fix the random seed
+    random.seed(RANDOM_SEED_NUM)
+
     X = []
     Y = []
     pkl_file = open(DATASET_NAME, 'rb')
@@ -143,12 +106,15 @@ def dataloader(data_type = 'standing', training_test_ratio = 0.75):
     return X_training.type(torch.FloatTensor), Y_training.type(torch.LongTensor), X_test.type(torch.FloatTensor), Y_test.type(torch.LongTensor)
 
 
-def main():
+def main(SEED):
+    torch.manual_seed(SEED)
     accuracy = 0
-    losseslist = []
+    training_losseslist = []
+    test_accuracieslist = []
 
     for t in range(TEST_NUM):
-        losses = []
+        training_losses = []
+        test_accuracies = []
         X_training, Y_training, X_test, Y_test = dataloader(data_type='turning', training_test_ratio=training_test_ratio)
 
         model = BiRNN(input_size, hidden_size, num_layers, num_classes).to(device)
@@ -173,47 +139,50 @@ def main():
                 # Forward pass
                 outputs = model(inputs)
                 #print(outputs.shape, labels.data)
-                loss = criterion(outputs, labels)
+                training_loss = criterion(outputs, labels)
 
                 # Backward and optimize
                 optimizer.zero_grad()
-                loss.backward()
+                training_loss.backward()
                 optimizer.step()
 
                 if (epoch + 1) % 5 == 0:
                     print('Trials [{}/{}], Epoch [{}/{}]], Loss: {:.4f}'
-                        .format(t + 1, TEST_NUM, epoch + 1, num_epochs, loss.item()))
+                        .format(t + 1, TEST_NUM, epoch + 1, num_epochs, training_loss.item()))
 
-                    losses.append(loss.item())
+                    training_losses.append(training_loss.item())
 
-        # Test the model
-        with torch.no_grad():
-            correct = 0
-            total = 0
-            for i in range(len(X_test)):
-                inputs = X_test[i]
-                inputs = inputs.reshape(-1, sequence_length, input_size).to(device)
-                labels = Y_test[i]
-                labels = labels.reshape(-1)
-                labels = labels.to(device)
-                outputs = model(inputs)
-                _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
+                    # Test the model
+                    with torch.no_grad():
+                        correct = 0
+                        total = 0
+                        for j in range(len(X_test)):
+                            inputs = X_test[j]
+                            inputs = inputs.reshape(-1, sequence_length, input_size).to(device)
+                            labels = Y_test[j]
+                            labels = labels.reshape(-1)
+                            labels = labels.to(device)
+                            outputs = model(inputs)
+                            _, predicted = torch.max(outputs.data, 1)
+                            total += labels.size(0)
+                            correct += (predicted == labels).sum().item()
+                        test_accuracies.append(correct/total)
 
         accuracy += 100 * correct / total
-        losseslist.append(losses)
+        training_losseslist.append(training_losses)
+        test_accuracieslist.append(test_accuracies)
 
-    print('Test Accuracy of the model on the 20 action samples: {} %'.format(accuracy/TEST_NUM))
+    print('Test Accuracy of the model on test action samples: {} %'.format(accuracy/TEST_NUM))
 
     # Save the model checkpoint
+    # TODO
     torch.save(model.state_dict(), 'model.ckpt')
 
-    loss_analysis(losseslist=losseslist)
-    variance_and_bias_analysis()
-    plt.show()
+    variance_and_bias_analysis(training_losseslist=training_losseslist, test_accuracieslist=test_accuracieslist)
+    save('ran_seed_'+str(RANDOM_SEED_NUM)+'_py_seed_'+str(num)+'.png')
+    # show()
 
 
 if __name__ == '__main__':
-    # visialized()
-    main()
+    for num in PYTORCH_SEED_NUM:
+        main(num)
