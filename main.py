@@ -108,79 +108,88 @@ def dataloader(data_type='standing', training_test_ratio=0.75):
 
 def main(SEED):
     torch.manual_seed(SEED)
-    accuracy = 0
     training_losseslist = []
     test_accuracieslist = []
+    training_losses = []
+    test_accuracies = []
 
     for t in range(TEST_NUM):
-        training_losses = []
-        test_accuracies = []
-        X_training, Y_training, X_test, Y_test = dataloader(data_type='turning', training_test_ratio=training_test_ratio)
+        try:
+            training_losses.clear()
+            test_accuracies.clear()
+            X_training, Y_training, X_test, Y_test = dataloader(data_type='turning', training_test_ratio=training_test_ratio)
 
-        model = BiRNN(input_size, hidden_size, num_layers, num_classes).to(device)
-        # Loss and optimizer
-        criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+            model = BiRNN(input_size, hidden_size, num_layers, num_classes).to(device)
+            # Loss and optimizer
+            criterion = nn.CrossEntropyLoss()
+            optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-        # Train the model
-        X_training = X_training.reshape(-1, batch_size, sequence_length, input_size)
-        Y_training = Y_training.reshape(-1, batch_size)
-        X_test = X_test.reshape(-1, 1, sequence_length, input_size)
-        Y_test = Y_test.reshape(-1, 1)
-        total_step = len(X_training)
-        for epoch in range(num_epochs):
-            for i in range(total_step):
-                inputs = X_training[i]
-                inputs = inputs.reshape(-1, sequence_length, input_size).to(device)
-                labels = Y_training[i]
-                labels = labels.reshape(-1)
-                labels = labels.to(device)
+            # Train the model
+            X_training = X_training.reshape(-1, batch_size, sequence_length, input_size)
+            Y_training = Y_training.reshape(-1, batch_size)
+            X_test = X_test.reshape(-1, 1, sequence_length, input_size)
+            Y_test = Y_test.reshape(-1, 1)
+            total_step = len(X_training)
+            for epoch in range(num_epochs):
+                for i in range(total_step):
+                    inputs = X_training[i]
+                    inputs = inputs.reshape(-1, sequence_length, input_size).to(device)
+                    labels = Y_training[i]
+                    labels = labels.reshape(-1)
+                    labels = labels.to(device)
 
-                # Forward pass
-                outputs = model(inputs)
-                #print(outputs.shape, labels.data)
-                training_loss = criterion(outputs, labels)
+                    # Forward pass
+                    outputs = model(inputs)
+                    #print(outputs.shape, labels.data)
+                    training_loss = criterion(outputs, labels)
 
-                # Backward and optimize
-                optimizer.zero_grad()
-                training_loss.backward()
-                optimizer.step()
+                    # Backward and optimize
+                    optimizer.zero_grad()
+                    training_loss.backward()
+                    optimizer.step()
 
-                if (epoch + 1) % 5 == 0:
-                    print('Trials [{}/{}], Epoch [{}/{}]], Loss: {:.4f}'
-                        .format(t + 1, TEST_NUM, epoch + 1, num_epochs, training_loss.item()))
+                    if (epoch + 1) % 5 == 0:
+                        print('Trials [{}/{}], Epoch [{}/{}]], Loss: {:.4f}'
+                            .format(t + 1, TEST_NUM, epoch + 1, num_epochs, training_loss.item()))
 
-                    training_losses.append(training_loss.item())
+                        training_losses.append(training_loss.item())
 
-                    # Test the model
-                    with torch.no_grad():
-                        correct = 0
-                        total = 0
-                        for j in range(len(X_test)):
-                            inputs = X_test[j]
-                            inputs = inputs.reshape(-1, sequence_length, input_size).to(device)
-                            labels = Y_test[j]
-                            labels = labels.reshape(-1)
-                            labels = labels.to(device)
-                            outputs = model(inputs)
-                            _, predicted = torch.max(outputs.data, 1)
-                            total += labels.size(0)
-                            correct += (predicted == labels).sum().item()
-                        test_accuracies.append(correct/total)
+                        # Test the model
+                        with torch.no_grad():
+                            correct = 0
+                            total = 0
+                            for j in range(len(X_test)):
+                                inputs = X_test[j]
+                                inputs = inputs.reshape(-1, sequence_length, input_size).to(device)
+                                labels = Y_test[j]
+                                labels = labels.reshape(-1)
+                                labels = labels.to(device)
+                                outputs = model(inputs)
+                                _, predicted = torch.max(outputs.data, 1)
+                                total += labels.size(0)
+                                correct += (predicted == labels).sum().item()
+                            test_accuracies.append(correct/total)
+        except KeyboardInterrupt:
+            print('Stop!')
 
-        accuracy += 100 * correct / total
         training_losseslist.append(training_losses)
         test_accuracieslist.append(test_accuracies)
 
-    print('Test Accuracy of the model on test action samples: {} %'.format(accuracy/TEST_NUM))
+    # Print accuracy of the model
+    accuracy = 0
+    for item in test_accuracieslist:
+        accuracy += item[-1]*100
+    accuracy = accuracy/len(test_accuracieslist)
+    print('Test Accuracy of the model on test action samples: {} %'.format(accuracy))
 
     # Save the model checkpoint
     # TODO
-    torch.save(model.state_dict(), 'model.ckpt')
+    # torch.save(model.state_dict(), 'model.ckpt')
 
+    # Show or save the graph of variance and bias analysis
     variance_and_bias_analysis(training_losseslist=training_losseslist, test_accuracieslist=test_accuracieslist)
-    save('ran_seed_'+str(RANDOM_SEED_NUM)+'_py_seed_'+str(num)+'.png')
-    # show()
+    # save('ran_seed_'+str(RANDOM_SEED_NUM)+'_py_seed_'+str(num)+'.png')
+    show()
 
 
 if __name__ == '__main__':
