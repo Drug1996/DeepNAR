@@ -1,5 +1,7 @@
 import pickle
 import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
+import numpy as np
 from preprocess import ACTION_TYPE as act
 from preprocess import CORRECTNESS as cor
 
@@ -46,10 +48,27 @@ def variance_and_bias_analysis(training_losseslist, test_accuracieslist):
         plt.title('Losses Analysis')
 
 
+def plot_confusion_matrix(y_true, y_pred, labels_name):
+    plt.figure(figsize=(8, 6))
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+    cm = confusion_matrix(y_true=y_true, y_pred=y_pred)
+    print(cm)
+    cm = cm.astype('float')/cm.sum(axis=1)[:, np.newaxis]
+    print(cm)
+    plt.imshow(cm, interpolation='nearest', cmap=plt.cm.binary)
+    plt.colorbar()
+    x_locations = np.array(range(len(labels_name)))
+    plt.xticks(x_locations, labels_name)
+    plt.yticks(x_locations, labels_name)
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.title('Confusion Matrix')
+
+
 def show():
     plt.show()
 
 
 def save(name):
-
     plt.savefig(name)

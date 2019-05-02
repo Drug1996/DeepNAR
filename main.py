@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from network import RNN
 from network import BiRNN
-from visualization import variance_and_bias_analysis, show, save
+from visualization import variance_and_bias_analysis, plot_confusion_matrix, show, save
 
 DATASET_NAME = 'dataset_lin.pkl'
 
@@ -27,6 +27,7 @@ training_test_ratio = 0.75
 TEST_NUM = 1
 RANDOM_SEED_NUM = 7
 PYTORCH_SEED_NUM = list(range(4, 5))
+LABELS_NAME =['None', 'Right turning', 'Wrong turning']
 
 
 # Load the data sub-network
@@ -112,6 +113,8 @@ def main(SEED):
     test_accuracieslist = []
     training_losses = []
     test_accuracies = []
+    y_true = []
+    y_pred = []
 
     for t in range(TEST_NUM):
         try:
@@ -156,6 +159,8 @@ def main(SEED):
 
                         # Test the model
                         with torch.no_grad():
+                            y_true.clear()
+                            y_pred.clear()
                             correct = 0
                             total = 0
                             for j in range(len(X_test)):
@@ -168,6 +173,8 @@ def main(SEED):
                                 _, predicted = torch.max(outputs.data, 1)
                                 total += labels.size(0)
                                 correct += (predicted == labels).sum().item()
+                                y_true.append(labels.item())
+                                y_pred.append(predicted.item())
                             test_accuracies.append(correct/total)
         except KeyboardInterrupt:
             print('Stop!')
@@ -186,8 +193,9 @@ def main(SEED):
     # TODO
     # torch.save(model.state_dict(), 'model.ckpt')
 
-    # Show or save the graph of variance and bias analysis
+    # Show or save the graph of variance and bias analysis, and confusion matrix graph
     variance_and_bias_analysis(training_losseslist=training_losseslist, test_accuracieslist=test_accuracieslist)
+    plot_confusion_matrix(y_true=y_true, y_pred=y_pred, labels_name=LABELS_NAME)
     # save('ran_seed_'+str(RANDOM_SEED_NUM)+'_py_seed_'+str(num)+'.png')
     show()
 
