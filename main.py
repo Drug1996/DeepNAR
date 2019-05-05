@@ -5,7 +5,8 @@ import torch
 import torch.nn as nn
 from network import RNN
 from network import BiRNN
-from visualization import variance_and_bias_analysis, plot_confusion_matrix, show, save
+from visualization import variance_and_bias_analysis, plot_confusion_matrix, show, save, data_visual
+from data_optimization import dimension_reduce, normalization
 
 DATASET_NAME = 'dataset_lin.pkl'
 
@@ -19,21 +20,22 @@ hidden_size = 64  # parameters for LSTM (Long Short Term Memory)
 num_layers = 2  # the depth of Deep-RNNs
 num_classes = 3
 batch_size = 45
-num_epochs = 120
+num_epochs = 150
 learning_rate = 0.1
 training_test_ratio = 0.75
+dimension_interval = 1
 
 # Test parameters
-TEST_NUM = 1
+TEST_NUM = 4
 RANDOM_SEED_NUM = 7
 PYTORCH_SEED_NUM = list(range(4, 5))
-LABELS_NAME =['None', 'Right turning', 'Wrong turning']
+LABELS_NAME = ['None', 'Right turning', 'Wrong turning']
 
 
 # Load the data sub-network
 def dataloader(data_type='standing', training_test_ratio=0.75):
     # fix the random seed
-    random.seed(RANDOM_SEED_NUM)
+    # random.seed(RANDOM_SEED_NUM)
 
     X = []
     Y = []
@@ -46,10 +48,6 @@ def dataloader(data_type='standing', training_test_ratio=0.75):
     for i in range(dataset_size):
         dataset[i][0] = dataset[i][0][:, 1:]
         MAX_T = max(MAX_T, dataset[i][0].shape[0])
-
-    # renew the parameter of sequence length
-    global sequence_length
-    sequence_length = MAX_T
 
     for i in range(dataset_size):
         X.append(np.pad(dataset[i][0], ((0, MAX_T-dataset[i][0].shape[0]), (0, 0)), 'constant', constant_values=0))
@@ -89,10 +87,21 @@ def dataloader(data_type='standing', training_test_ratio=0.75):
     for num in index_0 + index_1 + index_2:
         if num not in training_index:
             test_index.append(num)
-    X_training = [X[i] for i in training_index]
+    # Data selection and dimension reduction
+    X_training = [dimension_reduce(X[i], dimension_interval) for i in training_index]
     Y_training = [Y[i] for i in training_index]
-    X_test = [X[i] for i in test_index]
+    X_test = [dimension_reduce(X[i], dimension_interval) for i in test_index]
     Y_test = [Y[i] for i in test_index]
+
+    # update the value of max sequence length after dimension reduction
+    MAX_T = X_training[0].shape[0]
+    # renew the parameter of sequence length
+    global sequence_length
+    sequence_length = MAX_T
+
+    # Data normalization
+    # X_training = normalization(X_training)
+    # X_test = normalization(X_test)
 
     # change the raw data form to pytorch data form
     X_training, Y_training, X_test, Y_test = np.array(X_training), np.array(Y_training), np.array(X_test), np.array(Y_test)
@@ -113,13 +122,17 @@ def main(SEED):
     test_accuracieslist = []
     training_losses = []
     test_accuracies = []
+    y_truelist = []
+    y_predlist = []
     y_true = []
     y_pred = []
 
     for t in range(TEST_NUM):
         try:
-            training_losses.clear()
-            test_accuracies.clear()
+            training_losses = []
+            test_accuracies = []
+            y_true = []
+            y_pred = []
             X_training, Y_training, X_test, Y_test = dataloader(data_type='turning', training_test_ratio=training_test_ratio)
 
             model = BiRNN(input_size, hidden_size, num_layers, num_classes).to(device)
@@ -181,6 +194,14 @@ def main(SEED):
 
         training_losseslist.append(training_losses)
         test_accuracieslist.append(test_accuracies)
+        y_truelist.append(y_true)
+        y_predlist.append(y_pred)
+
+        # print(t)
+        # print(training_losseslist)
+        # print(test_accuracieslist)
+        # print(y_truelist)
+        # print(y_predlist)
 
     # Print accuracy of the model
     accuracy = 0
@@ -195,11 +216,12 @@ def main(SEED):
 
     # Show or save the graph of variance and bias analysis, and confusion matrix graph
     variance_and_bias_analysis(training_losseslist=training_losseslist, test_accuracieslist=test_accuracieslist)
-    plot_confusion_matrix(y_true=y_true, y_pred=y_pred, labels_name=LABELS_NAME)
-    # save('ran_seed_'+str(RANDOM_SEED_NUM)+'_py_seed_'+str(num)+'.png')
-    show()
+    save('ran_seed_' + str(RANDOM_SEED_NUM) + '_loss_accuracy' + '.png')
+    plot_confusion_matrix(y_truelist=y_truelist, y_predlist=y_predlist, labels_name=LABELS_NAME)
+    save('ran_seed_' + str(RANDOM_SEED_NUM) + '_confusion_matrix' + '.png')
 
 
 if __name__ == '__main__':
     for num in PYTORCH_SEED_NUM:
         main(num)
+    # data_visual()
