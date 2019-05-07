@@ -45,33 +45,40 @@ def show_image(data):
 
 
 def variance_and_bias_analysis(training_losseslist, test_accuracieslist):
-    plt.figure(figsize=(16, 12))
+    fig = plt.figure(figsize=(8, 6))
     trials_num = len(training_losseslist)
     # print(training_losseslist)
     # print(test_accuracieslist)
     for i in range(trials_num):
-        plt.subplot(2, int(np.ceil(trials_num/2.0)), i+1)
         x1 = list(range(1, len(training_losseslist[i])+1))
         y1 = training_losseslist[i]
         x2 = list(range(1, len(test_accuracieslist[i]) + 1))
         y2 = test_accuracieslist[i]
-        plt.plot(x1, y1, marker='*', label='training loss')
-        plt.plot(x2, y2, marker='*', label='test accuracy')
-        plt.xlabel(r'$batches\ /\ times$')
-        plt.ylabel(r'$loss$')
-        plt.yticks(np.arange(0, 2.1, 0.1))
-        plt.legend()
-        plt.grid()
+        # ax1 = fig.add_subplot(2, int(np.ceil(trials_num/2.0)), i+1)
+        ax1 = fig.add_subplot(111)
+        ax1.plot(x1, y1, marker='*', label='training loss')
+        ax1.set_xlabel(r'$batches\ /\ times$')
+        ax1.set_ylabel(r'$Loss$')
+        ax1.legend(loc='upper left')
+
+        ax2 = ax1.twinx()
+        ax2.plot(x2, y2, 'r', marker='*', label='test accuracy')
+        ax2.set_ylim(0, 1)
+        ax2.set_yticks(np.arange(0, 1.1, 0.1))
+        ax2.set_ylabel(r'$Accuracy$')
+        ax2.legend(loc='upper right')
         plt.title('Losses Analysis')
+        plt.grid()
 
 
 def plot_confusion_matrix(y_truelist, y_predlist, labels_name):
-    plt.figure(figsize=(10, 10))
+    plt.figure(figsize=(12, 10))
     trials_num = len(y_truelist)
     # print(y_truelist)
     # print(y_predlist)
     for i in range(trials_num):
-        plt.subplot(2, int(np.ceil(trials_num/2.0)), i+1)
+        # plt.subplot(2, int(np.ceil(trials_num/2.0)), i+1)
+        plt.subplot(1, 1, 1)
         y_true = np.array(y_truelist[i])
         y_pred = np.array(y_predlist[i])
         cm = confusion_matrix(y_true=y_true, y_pred=y_pred)
@@ -81,6 +88,7 @@ def plot_confusion_matrix(y_truelist, y_predlist, labels_name):
         x_locations = np.array(range(len(labels_name)))
         plt.xticks(x_locations, labels_name)
         plt.yticks(x_locations, labels_name)
+        plt.colorbar()
         plt.ylabel('True label')
         plt.xlabel('Predicted label')
         plt.title('Confusion Matrix')

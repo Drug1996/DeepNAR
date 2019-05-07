@@ -27,8 +27,8 @@ dimension_interval = 1
 
 # Test parameters
 TEST_NUM = 1
-RANDOM_SEED_NUM = 7
-PYTORCH_SEED_NUM = list(range(5))
+RANDOM_SEED_NUM = 0
+TRIALS_NUM = 5
 LABELS_NAME = ['None', 'Right turning', 'Wrong turning']
 
 
@@ -91,12 +91,17 @@ def dataloader(data_type='standing', training_dev_test_ratio=[0.6, 0.5]):
     dev_index += random.sample(index_0, int(index_0_size*training_dev_test_ratio[1]))
     dev_index += random.sample(index_1, int(index_1_size * training_dev_test_ratio[1]))
     dev_index += random.sample(index_2, int(index_2_size * training_dev_test_ratio[1]))
+    random.shuffle(dev_index)
 
     # Get test index
     index_0 = [num for num in index_0 if num not in dev_index]
     index_1 = [num for num in index_1 if num not in dev_index]
     index_2 = [num for num in index_2 if num not in dev_index]
     test_index = index_0 + index_1 + index_2
+    random.shuffle(test_index)
+
+    # print(dev_index)
+    # print(test_index)
 
     # Data selection and dimension reduction
     X_training = [dimension_reduce(X[i], dimension_interval) for i in training_index]
@@ -113,6 +118,7 @@ def dataloader(data_type='standing', training_dev_test_ratio=[0.6, 0.5]):
 
     # Data normalization
     # X_training = normalization(X_training)
+    # X_dev = normalization(X_dev)
     # X_test = normalization(X_test)
 
     # change the raw data form to pytorch data form
@@ -137,20 +143,18 @@ def dataloader(data_type='standing', training_dev_test_ratio=[0.6, 0.5]):
            X_test.type(torch.FloatTensor), Y_test.type(torch.LongTensor)
 
 
-def main(num):
+def training_model(num):
     # torch.manual_seed(SEED)
-
-    # Create the model
-    model = BiRNN(input_size, hidden_size, num_layers, num_classes).to(device)
-
-    # Loss and optimizer
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     # Load the dataset
     X_training, Y_training, X_dev, Y_dev, X_test, Y_test = \
         dataloader(data_type='turning', training_dev_test_ratio=training_dev_test_ratio)
 
+    # print(Y_training.data)
+    # print(Y_dev.data)
+    # print(Y_test.data)
+
+    modellist = []
     training_losseslist = []
     test_accuracieslist = []
     training_losses = []
@@ -162,6 +166,13 @@ def main(num):
 
     for t in range(TEST_NUM):
         try:
+            # Create the model
+            model = BiRNN(input_size, hidden_size, num_layers, num_classes).to(device)
+
+            # Loss and optimizer
+            criterion = nn.CrossEntropyLoss()
+            optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
             training_losses = []
             test_accuracies = []
 
@@ -221,29 +232,66 @@ def main(num):
         except KeyboardInterrupt:
             print('Stop!')
 
+        modellist.append(model)
         training_losseslist.append(training_losses)
         test_accuracieslist.append(test_accuracies)
         y_truelist.append(y_true)
         y_predlist.append(y_pred)
 
     # Print accuracy of the model
-    accuracy = 0
+    accuracy = []
     for item in test_accuracieslist:
-        accuracy += item[-1]*100
-    accuracy = accuracy/len(test_accuracieslist)
-    print('Test Accuracy of the model on test action samples: {} %'.format(accuracy))
-
-    # Save the model checkpoint
-    # TODO
-    # torch.save(model.state_dict(), 'model.ckpt')
+        accuracy.append(item[-1] * 100)
+    max_accuracy = max(accuracy)
+    print('Dev accuracy of the No.{} model on test action samples: {} %'.format(num+1, max_accuracy))
 
     # Show or save the graph of variance and bias analysis, and confusion matrix graph
-    variance_and_bias_analysis(training_losseslist=training_losseslist, test_accuracieslist=test_accuracieslist)
+    variance_and_bias_analysis(training_losseslist, test_accuracieslist)
     save('trials' + str(num) + '_loss_accuracy' + '.png')
-    plot_confusion_matrix(y_truelist=y_truelist, y_predlist=y_predlist, labels_name=LABELS_NAME)
+    plot_confusion_matrix(y_truelist, y_predlist, LABELS_NAME)
     save('trials_' + str(num) + '_confusion_matrix' + '.png')
+
+    return max_accuracy, modellist[accuracy.index(max_accuracy)], X_test, Y_test
+
+
+def test_model(model, X_test, Y_test):
+    # Test the model on test set
+    with torch.no_grad():
+        y_true = []
+        y_pred = []
+        correct = 0
+        total = 0
+        for j in range(len(X_test)):
+            inputs = X_test[j]
+            inputs = inputs.reshape(-1, sequence_length, input_size).to(device)
+            labels = Y_test[j]
+            labels = labels.reshape(-1)
+            labels = labels.to(device)
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+            y_true.append(labels.item())
+            y_pred.append(predicted.item())
+        print('Final accuracy is {} %'.format((correct/total)*100))
+        plot_confusion_matrix([y_true], [y_pred], LABELS_NAME)
+        save('test_confusion_matrix' + '.png')
+
+
+def main(num):
+    accuracylist = []
+    modellist = []
+    X_test = np.array([])
+    Y_test = np.array([])
+    for i in range(num):
+        accuracy, model, X_test, Y_test = training_model(i)
+        accuracylist.append(accuracy)
+        modellist.append(model)
+    index = accuracylist.index(max(accuracylist))
+    print('Choose No.{} model as test model.'.format(index+1))
+    best_model = modellist[index]
+    test_model(best_model, X_test, Y_test)
 
 
 if __name__ == '__main__':
-    for num in PYTORCH_SEED_NUM:
-        main(num)
+    main(TRIALS_NUM)
