@@ -10,13 +10,13 @@ from data_optimization import dimension_reduce, normalization
 def data_visual(dataset_name='dataset_lin.pkl'):
     pkl_file = open(dataset_name, 'rb')
     dataset = pickle.load(pkl_file)
-    show_image(dataset[5:9])
+    show_image(dataset[0:80:20])
     print('debug')
     pkl_file.close()
 
 
 def show_image(data):
-    plt.figure(figsize=(14, 7))
+    plt.figure(figsize=(14, 12))
     figure_num = len(data)
     X = []
     Y = []
@@ -25,7 +25,7 @@ def show_image(data):
         X.append(data[i][0][:, 0])
         Y.append(data[i][0][:, 1:])
 
-    Y = normalization(Y)
+    # Y = normalization(Y)
 
     for i in range(figure_num):
         x = X[i]
@@ -39,8 +39,9 @@ def show_image(data):
         # print(action_type, correctness)
         # plt.subplot(4, (figure_num/4), i+1)
         plt.subplot(2, 2, i + 1)
+        plt.xlabel('time/sec')
         plt.plot(x/1000.0, y)
-        plt.title(action_type+' '+correctness, fontsize='x-small')
+        plt.title(action_type+' '+correctness)
     show()
 
 

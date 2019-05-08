@@ -19,8 +19,8 @@ input_size = 36  # including 6 channels of 6 IMU sensors, totally 36 channels
 hidden_size = 64  # parameters for LSTM (Long Short Term Memory)
 num_layers = 2  # the depth of Deep-RNNs
 num_classes = 3
-batch_size = 18
-num_epochs = 10
+batch_size = 36
+num_epochs = 120
 learning_rate = 0.1
 training_dev_test_ratio = [0.6, 0.5]
 dimension_interval = 1
@@ -29,7 +29,8 @@ dimension_interval = 1
 TEST_NUM = 1
 RANDOM_SEED_NUM = 0
 TRIALS_NUM = 5
-LABELS_NAME = ['None', 'Right turning', 'Wrong turning']
+LABELS_NAME = {'standing': ['None', 'Right standing', 'Wrong standing'],
+               'turning': ['None', 'Right turning', 'Wrong turning']}
 
 
 # Load the data sub-network
@@ -143,12 +144,12 @@ def dataloader(data_type='standing', training_dev_test_ratio=[0.6, 0.5]):
            X_test.type(torch.FloatTensor), Y_test.type(torch.LongTensor)
 
 
-def training_model(num):
+def training_model(num, type='standing'):
     # torch.manual_seed(SEED)
 
     # Load the dataset
     X_training, Y_training, X_dev, Y_dev, X_test, Y_test = \
-        dataloader(data_type='turning', training_dev_test_ratio=training_dev_test_ratio)
+        dataloader(data_type=type, training_dev_test_ratio=training_dev_test_ratio)
 
     # print(Y_training.data)
     # print(Y_dev.data)
@@ -179,10 +180,13 @@ def training_model(num):
             # Train the model
             X_training = X_training.reshape(-1, batch_size, sequence_length, input_size)
             Y_training = Y_training.reshape(-1, batch_size)
-            X_dev = X_test.reshape(-1, 1, sequence_length, input_size)
-            Y_dev = Y_test.reshape(-1, 1)
+            X_dev = X_dev.reshape(-1, 1, sequence_length, input_size)
+            Y_dev = Y_dev.reshape(-1, 1)
             X_test = X_test.reshape(-1, 1, sequence_length, input_size)
             Y_test = Y_test.reshape(-1, 1)
+
+            # print('Y_dev', Y_dev)
+            # print('Y_test', Y_test)
 
             total_step = len(X_training)  # how many batches for one epoch
             for epoch in range(num_epochs):
@@ -203,7 +207,7 @@ def training_model(num):
                     optimizer.step()
 
                 if (epoch + 1) % 5 == 0:
-                    print('Trials [{}/{}], Epoch [{}/{}]], Loss: {:.4f}'
+                    print('Trials [{}/{}], Epoch [{}/{}], Loss: {:.4f}'
                           .format(t + 1, TEST_NUM, epoch + 1, num_epochs, training_loss.item()))
 
                     # Get the value of loss
@@ -232,6 +236,8 @@ def training_model(num):
         except KeyboardInterrupt:
             print('Stop!')
 
+        # print('dev true:', y_true)
+        # print('dev pred:', y_pred)
         modellist.append(model)
         training_losseslist.append(training_losses)
         test_accuracieslist.append(test_accuracies)
@@ -243,18 +249,18 @@ def training_model(num):
     for item in test_accuracieslist:
         accuracy.append(item[-1] * 100)
     max_accuracy = max(accuracy)
-    print('Dev accuracy of the No.{} model on test action samples: {} %'.format(num+1, max_accuracy))
+    print('Dev accuracy of the No.{} model on dev action samples: {} %'.format(num+1, max_accuracy))
 
     # Show or save the graph of variance and bias analysis, and confusion matrix graph
     variance_and_bias_analysis(training_losseslist, test_accuracieslist)
     save('trials' + str(num) + '_loss_accuracy' + '.png')
-    plot_confusion_matrix(y_truelist, y_predlist, LABELS_NAME)
+    plot_confusion_matrix(y_truelist, y_predlist, LABELS_NAME[type])
     save('trials_' + str(num) + '_confusion_matrix' + '.png')
 
     return max_accuracy, modellist[accuracy.index(max_accuracy)], X_test, Y_test
 
 
-def test_model(model, X_test, Y_test):
+def test_model(model, X_test, Y_test, type='standing'):
     # Test the model on test set
     with torch.no_grad():
         y_true = []
@@ -273,25 +279,29 @@ def test_model(model, X_test, Y_test):
             correct += (predicted == labels).sum().item()
             y_true.append(labels.item())
             y_pred.append(predicted.item())
+
+        # print('test y_true', y_true)
+        # print('test y_pred', y_pred)
         print('Final accuracy is {} %'.format((correct/total)*100))
-        plot_confusion_matrix([y_true], [y_pred], LABELS_NAME)
+        plot_confusion_matrix([y_true], [y_pred], LABELS_NAME[type])
         save('test_confusion_matrix' + '.png')
 
 
-def main(num):
+def main(num, type):
     accuracylist = []
     modellist = []
     X_test = np.array([])
     Y_test = np.array([])
     for i in range(num):
-        accuracy, model, X_test, Y_test = training_model(i)
+        accuracy, model, X_test, Y_test = training_model(i, type)
         accuracylist.append(accuracy)
         modellist.append(model)
     index = accuracylist.index(max(accuracylist))
     print('Choose No.{} model as test model.'.format(index+1))
     best_model = modellist[index]
-    test_model(best_model, X_test, Y_test)
+    test_model(best_model, X_test, Y_test, type)
 
 
 if __name__ == '__main__':
-    main(TRIALS_NUM)
+    main(num=TRIALS_NUM, type='turning')
+    # data_visual()
