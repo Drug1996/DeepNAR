@@ -6,6 +6,8 @@ from preprocess import ACTION_TYPE as act
 from preprocess import CORRECTNESS as cor
 from data_optimization import dimension_reduce, normalization
 
+FONTSIZE = 12
+
 
 def data_visual(dataset_name='dataset_lin.pkl'):
     pkl_file = open(dataset_name, 'rb')
@@ -87,12 +89,12 @@ def plot_confusion_matrix(y_truelist, y_predlist, labels_name):
         # print(cm)
         plt.imshow(cm, interpolation='nearest', cmap=plt.cm.binary)
         x_locations = np.array(range(len(labels_name)))
-        plt.xticks(x_locations, labels_name)
-        plt.yticks(x_locations, labels_name)
+        plt.xticks(x_locations, labels_name, fontsize=FONTSIZE)
+        plt.yticks(x_locations, labels_name, fontsize=FONTSIZE)
         plt.colorbar()
-        plt.ylabel('True label')
-        plt.xlabel('Predicted label')
-        plt.title('Confusion Matrix')
+        plt.ylabel('True label', fontsize=FONTSIZE)
+        plt.xlabel('Predicted label', fontsize=FONTSIZE)
+        plt.title('Confusion Matrix', fontsize=FONTSIZE)
 
 
 def show():
@@ -101,3 +103,11 @@ def show():
 
 def save(name):
     plt.savefig(name)
+
+
+if __name__ == '__main__':
+    y_true = [[0,0,0,0,1,1,1,1,2,2,2,2]]
+    y_pred = [[2,0,0,0,1,1,1,1,2,2,2,2]]
+    name = ['None', 'Right turning', 'Wrong turning']
+    plot_confusion_matrix(y_true, y_pred, name)
+    show()
