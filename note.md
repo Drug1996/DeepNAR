@@ -1,9 +1,12 @@
-#### TODO LIST
+### TODO LIST
 1. ~~Fix random seed~~
-2. ~~Finish variance and bias function~~
-3. ~~Data normalization~~
+2. ~~PyTorch's data loader~~
+3. ~~Sample adjustment~~\
+**lin:**\
+~~standing_right_2_2019_04_20_06_02_46.txt 272
+standing_right_19_2019_04_20_06_07_00.txt 280~~
+**zhong:**\
+~~standing_right_1_2019_04_20_06_55_20.txt 312~~
+
+3. Saving and loading model in PyTorch
 4. Data augmentation
-5. ~~Deduce the dimension of training data~~
-6. ~~Can stop training halfway according to the value of loss~~
-7. Saving and loading model in Pytorch
-8. Specific results analysis graph, 'confusion matrix'

@@ -3,14 +3,12 @@ import numpy as np
 import pickle
 
 DATASET_NAME = ['lin', 'zhong']
-ACTION_TYPE = {'none': 0, 'standing': 1, 'turning': 2}
-CORRECTNESS = {'right': 0, 'wrong': 1}
 
 
 def preprocess(path, savename='dataset.pkl'):
     max_t = 0
     min_t = 10000
-    os.chdir('.\\' + path)
+    os.chdir(path)
     filelist = os.listdir()
     dataset = {'right_standing': [],
                'wrong_standing': [],
@@ -24,6 +22,7 @@ def preprocess(path, savename='dataset.pkl'):
             datafile = open(item)
             datafile.readline()  # omit the first line
             data = datafile.readlines()
+            print(item, 'length:', len(data))
             max_t = max(max_t, len(data))
             min_t = min(min_t, len(data))
             # extract the matrix from data
@@ -42,7 +41,7 @@ def preprocess(path, savename='dataset.pkl'):
         print(action, len(sample))
     print('Max length is: ', max_t, end=', ')
     print('Min length is: ', min_t)
-    os.chdir('.\\..')
+    os.chdir('..')
     output = open(savename, 'wb')
     pickle.dump(dataset, output)
     output.close()

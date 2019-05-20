@@ -1,58 +1,38 @@
-import pickle
+import os
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import numpy as np
-from preprocess import ACTION_TYPE as act
-from preprocess import CORRECTNESS as cor
 from data_optimization import dimension_reduce, normalization
 
 FONTSIZE = 12
 
 
-def data_visual(dataset_name='dataset_lin.pkl'):
-    pkl_file = open(dataset_name, 'rb')
-    dataset = pickle.load(pkl_file)
-    show_image(dataset[0:80:20])
-    print('debug')
-    pkl_file.close()
+def data_visual(sample):
+    datafile = open(sample)
+    data_matrix = []
+    datafile.readline() # omit yje first line
+    data = datafile.readlines()
+    for line in data:
+        data_matrix.append(list(map(eval, line.split()[1:])))
+    datafile.close()
+    data_matrix = np.array(data_matrix)
+    show_image(data_matrix)
 
 
 def show_image(data):
-    plt.figure(figsize=(14, 12))
-    figure_num = len(data)
-    X = []
-    Y = []
-
-    for i in range(figure_num):
-        X.append(data[i][0][:, 0])
-        Y.append(data[i][0][:, 1:])
-
-    # Y = normalization(Y)
-
-    for i in range(figure_num):
-        x = X[i]
-        y = Y[i]
-        x = dimension_reduce(x, 4)
-        y = dimension_reduce(y, 4)
-        action_type = data[i][1]
-        action_type = list(act.keys())[list(act.values()).index(action_type)]
-        correctness = data[i][2]
-        correctness = list(cor.keys())[list(cor.values()).index(correctness)]
-        # print(action_type, correctness)
-        # plt.subplot(4, (figure_num/4), i+1)
-        plt.subplot(2, 2, i + 1)
-        plt.xlabel('time/sec')
-        plt.plot(x/1000.0, y)
-        plt.title(action_type+' '+correctness)
+    x = data[:, 0]
+    y = data[:, 1:]
+    plt.plot(x/1000.0, y)
+    plt.xlabel('time/sec')
     show()
 
 
 def variance_and_bias_analysis(training_losseslist, test_accuracieslist):
     fig = plt.figure(figsize=(8, 6))
-    trials_num = len(training_losseslist)
+    test_num = len(training_losseslist)
     # print(training_losseslist)
     # print(test_accuracieslist)
-    for i in range(trials_num):
+    for i in range(test_num):
         x1 = list(range(1, len(training_losseslist[i])+1))
         y1 = training_losseslist[i]
         x2 = list(range(1, len(test_accuracieslist[i]) + 1))
@@ -76,10 +56,10 @@ def variance_and_bias_analysis(training_losseslist, test_accuracieslist):
 
 def plot_confusion_matrix(y_truelist, y_predlist, labels_name):
     plt.figure(figsize=(12, 10))
-    trials_num = len(y_truelist)
+    test_num = len(y_truelist)
     # print(y_truelist)
     # print(y_predlist)
-    for i in range(trials_num):
+    for i in range(test_num):
         # plt.subplot(2, int(np.ceil(trials_num/2.0)), i+1)
         plt.subplot(1, 1, 1)
         y_true = np.array(y_truelist[i])
@@ -106,8 +86,22 @@ def save(name):
 
 
 if __name__ == '__main__':
-    y_true = [[0,0,0,0,1,1,1,1,2,2,2,2]]
-    y_pred = [[2,0,0,0,1,1,1,1,2,2,2,2]]
-    name = ['None', 'Right turning', 'Wrong turning']
-    plot_confusion_matrix(y_true, y_pred, name)
-    show()
+    # y_true = [[0,0,0,0,1,1,1,1,2,2,2,2]]
+    # y_pred = [[2,0,0,0,1,1,1,1,2,2,2,2]]
+    # name = ['None', 'Right turning', 'Wrong turning']
+    # plot_confusion_matrix(y_true, y_pred, name)
+    # show()
+
+    # sample adjustment
+    lin_samples = ['standing_right_2_2019_04_20_06_02_46.txt',
+                   'standing_right_19_2019_04_20_06_07_00.txt']
+    for sample in lin_samples:
+        os.chdir('lin')
+        data_visual(sample)
+        os.chdir('..')
+    zhong_samples = ['standing_right_1_2019_04_20_06_55_20.txt']
+    for sample in zhong_samples:
+        os.chdir('zhong')
+        data_visual(sample)
+        os.chdir('..')
+
