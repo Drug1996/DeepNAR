@@ -1,4 +1,4 @@
-import os
+import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import numpy as np
@@ -55,10 +55,8 @@ def variance_and_bias_analysis(training_losseslist, test_accuracieslist):
 
 
 def plot_confusion_matrix(y_truelist, y_predlist, labels_name):
-    plt.figure(figsize=(12, 10))
+    plt.figure(figsize=(10, 8))
     test_num = len(y_truelist)
-    # print(y_truelist)
-    # print(y_predlist)
     for i in range(test_num):
         # plt.subplot(2, int(np.ceil(trials_num/2.0)), i+1)
         plt.subplot(1, 1, 1)
@@ -67,14 +65,11 @@ def plot_confusion_matrix(y_truelist, y_predlist, labels_name):
         cm = confusion_matrix(y_true=y_true, y_pred=y_pred)
         cm = cm.astype('float')/cm.sum(axis=1)[:, np.newaxis]
         # print(cm)
-        plt.imshow(cm, interpolation='nearest', cmap=plt.cm.binary)
-        x_locations = np.array(range(len(labels_name)))
-        plt.xticks(x_locations, labels_name, fontsize=FONTSIZE)
-        plt.yticks(x_locations, labels_name, fontsize=FONTSIZE)
-        plt.colorbar()
-        plt.ylabel('True label', fontsize=FONTSIZE)
-        plt.xlabel('Predicted label', fontsize=FONTSIZE)
         plt.title('Confusion Matrix', fontsize=FONTSIZE)
+        ax = sns.heatmap(cm, annot=True, cmap='Blues',
+                         xticklabels=labels_name, yticklabels=labels_name)
+        ax.set_ylabel('True label', fontsize=FONTSIZE)
+        ax.set_xlabel('Predicted label', fontsize=FONTSIZE)
 
 
 def show():
@@ -86,22 +81,22 @@ def save(name):
 
 
 if __name__ == '__main__':
-    # y_true = [[0,0,0,0,1,1,1,1,2,2,2,2]]
-    # y_pred = [[2,0,0,0,1,1,1,1,2,2,2,2]]
-    # name = ['None', 'Right turning', 'Wrong turning']
-    # plot_confusion_matrix(y_true, y_pred, name)
-    # show()
+    y_true = [[0,0,0,0,1,1,1,1,2,2,2,2]]
+    y_pred = [[2,0,0,0,1,1,1,1,2,2,2,2]]
+    name = ['None', 'Right turning', 'Wrong turning']
+    plot_confusion_matrix(y_true, y_pred, name)
+    show()
 
-    # sample adjustment
-    lin_samples = ['standing_right_2_2019_04_20_06_02_46.txt',
-                   'standing_right_19_2019_04_20_06_07_00.txt']
-    for sample in lin_samples:
-        os.chdir('lin')
-        data_visual(sample)
-        os.chdir('..')
-    zhong_samples = ['standing_right_1_2019_04_20_06_55_20.txt']
-    for sample in zhong_samples:
-        os.chdir('zhong')
-        data_visual(sample)
-        os.chdir('..')
+    # # sample adjustment
+    # lin_samples = ['standing_right_2_2019_04_20_06_02_46.txt',
+    #                'standing_right_19_2019_04_20_06_07_00.txt']
+    # for sample in lin_samples:
+    #     os.chdir('lin')
+    #     data_visual(sample)
+    #     os.chdir('..')
+    # zhong_samples = ['standing_right_1_2019_04_20_06_55_20.txt']
+    # for sample in zhong_samples:
+    #     os.chdir('zhong')
+    #     data_visual(sample)
+    #     os.chdir('..')
 

@@ -15,12 +15,12 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # Hyper-parameters
 sequence_length = 0  # this parameter will be renewed in 'dataloader' function
 input_size = 36  # including 6 channels of 6 IMU sensors, totally 36 channels
-hidden_size = 128  # parameters for LSTM (Long Short Term Memory)
+hidden_size = 256  # parameters for LSTM (Long Short Term Memory)
 num_layers = 2  # the depth of Deep-RNNs
 num_classes = 4
 batch_size = 48
 num_epochs = 100
-learning_rate = 0.05
+learning_rate = 0.01
 dimension_interval = 1
 
 # Test parameters
@@ -227,6 +227,9 @@ def test_model(model, test_loader):
         plot_confusion_matrix([y_true], [y_pred], LABELS)
         save('test_confusion_matrix' + '.png')
 
+    # Save the modal checkpoint
+    torch.save(model.state_dict(), 'DeepNAR_model.ckpt')
+
 
 def main(num):
     accuracylist = []
@@ -236,7 +239,7 @@ def main(num):
         accuracylist.append(accuracy)
         modellist.append(model)
     index = accuracylist.index(max(accuracylist))
-    print('Choose No.{} model as test model with {}.'.format(index+1, max(accuracylist)))
+    print('Choose No.{} model as test model with {} % Dev accuracy.'.format(index+1, max(accuracylist)))
     best_model = modellist[index]
     test_model(best_model, test_loader)
 
