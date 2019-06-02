@@ -13,30 +13,38 @@ def preprocess(path, savename='dataset.pkl'):
     dataset = {'right_standing': [],
                'wrong_standing': [],
                'right_turning': [],
-               'wrong_turning': []}
+               'wrong_turning': [],
+               'rightright_continuous': [],
+               'rightwrong_continuous': [],
+               'wrongright_continuous': [],
+               'wrongwrong_continuous': []}
 
     print('Start to generate ' + savename)
     for item in filelist:
+        data_matrix = []
+        datafile = open(item)
+        datafile.readline()  # omit the first line
+        data = datafile.readlines()
+        # extract the matrix from data
+        for line in data:
+            line = line.split()
+            line = line[1:]  # remove number column
+            line = list(map(eval, line))
+            data_matrix.append(line)
+        datafile.close()
+        data_matrix = np.array(data_matrix)
         if not item.split('_')[0].startswith('continuous'):
-            data_matrix = []
-            datafile = open(item)
-            datafile.readline()  # omit the first line
-            data = datafile.readlines()
             print(item, 'length:', len(data))
             max_t = max(max_t, len(data))
             min_t = min(min_t, len(data))
-            # extract the matrix from data
-            for line in data:
-                line = line.split()
-                line = line[1:]  # remove number column
-                line = list(map(eval, line))
-                data_matrix.append(line)
-            datafile.close()
-            data_matrix = np.array(data_matrix)
-            # extract label from name of the file
+            # extract label from name of the file and store the data
+            dataset[item.split('_')[1] + '_' + item.split('_')[0]].append(data_matrix)
+        else: # continuous data
+            print(item, 'length:', len(data))
             dataset[item.split('_')[1] + '_' + item.split('_')[0]].append(data_matrix)
 
-    dataset['length_range'] = [min_t, max_t]
+
+    dataset['length_range'] = [min_t, max_t] # the range of length for separate data
     for action, sample in zip(dataset.keys(), dataset.values()):
         print(action, len(sample))
     print('Max length is: ', max_t, end=', ')

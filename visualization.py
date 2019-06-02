@@ -1,8 +1,10 @@
+import os
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import numpy as np
 from data_optimization import dimension_reduce, normalization
+from data_augmentation import jitter
 
 FONTSIZE = 12
 
@@ -16,14 +18,21 @@ def data_visual(sample):
         data_matrix.append(list(map(eval, line.split()[1:])))
     datafile.close()
     data_matrix = np.array(data_matrix)
-    show_image(data_matrix)
+    data = []
+    x, y = data_matrix[:, 0], data_matrix[:, 1:]
+    # y = normalization([y])[0]
+    data.append((x, y))
+
+    # # test for data augmentation
+    # data.append((x, jitter(y)))
+    show_image(data)
 
 
 def show_image(data):
-    x = data[:, 0]
-    y = data[:, 1:]
-    plt.plot(x/1000.0, y)
-    plt.xlabel('time/sec')
+    for (x, y) in data:
+        plt.figure()
+        plt.plot(x/1000.0, y)
+        plt.xlabel('time/sec')
     show()
 
 
@@ -81,19 +90,20 @@ def save(name):
 
 
 if __name__ == '__main__':
-    y_true = [[0,0,0,0,1,1,1,1,2,2,2,2]]
-    y_pred = [[2,0,0,0,1,1,1,1,2,2,2,2]]
-    name = ['None', 'Right turning', 'Wrong turning']
-    plot_confusion_matrix(y_true, y_pred, name)
-    show()
+    # y_true = [[0,0,0,0,1,1,1,1,2,2,2,2]]
+    # y_pred = [[2,0,0,0,1,1,1,1,2,2,2,2]]
+    # name = ['None', 'Right turning', 'Wrong turning']
+    # plot_confusion_matrix(y_true, y_pred, name)
+    # show()
 
-    # # sample adjustment
-    # lin_samples = ['standing_right_2_2019_04_20_06_02_46.txt',
-    #                'standing_right_19_2019_04_20_06_07_00.txt']
-    # for sample in lin_samples:
-    #     os.chdir('lin')
-    #     data_visual(sample)
-    #     os.chdir('..')
+    # sample adjustment
+    lin_samples = ['standing_right_2_2019_04_20_06_02_46.txt',
+                   'turning_right_2_2019_04_20_06_23_51.txt',
+                   'continuous_rightright_1_2019_04_20_06_40_43.txt']
+    for sample in lin_samples:
+        os.chdir('lin')
+        data_visual(sample)
+        os.chdir('..')
     # zhong_samples = ['standing_right_1_2019_04_20_06_55_20.txt']
     # for sample in zhong_samples:
     #     os.chdir('zhong')
