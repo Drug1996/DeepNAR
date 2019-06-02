@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import numpy as np
 from data_optimization import dimension_reduce, normalization
-from data_augmentation import jitter
+from data_augmentation import jitter, crop
 
 FONTSIZE = 12
 
@@ -25,6 +25,10 @@ def data_visual(sample):
 
     # # test for data augmentation
     # data.append((x, jitter(y)))
+    y, _ = crop([y], [0])
+    print(_)
+    for i in range(len(y)):
+        data.append((x[0:len(y[i])], y[i]))
     show_image(data)
 
 

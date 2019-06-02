@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+import numpy as np
 import matplotlib.pyplot as plt
 from collections import Counter
 import pickle
@@ -47,15 +48,19 @@ class sliding_windows:
         for i in range(len(self.marker)):
             c = Counter(self.marker[i])
             if 0 in c or 1 in c:
-                if c[0] >= c[1]:
+                if c[0] > c[1]:
                     self.marker[i] = 0
                 elif c[1] > c[0]:
                     self.marker[i] = 1
+                else:
+                    self.marker[i] = np.random.randint(0,2)
             elif 2 in c or 3 in c:
-                if c[2] >= c[3]:
+                if c[2] > c[3]:
                     self.marker[i] = 2
                 elif c[3] > c[2]:
                     self.marker[i] = 3
+                else:
+                    self.marker[i] = np.random.randint(2,4)
             else:
                 self.marker[i] = -1
         c = Counter(self.marker)
@@ -63,15 +68,19 @@ class sliding_windows:
             if i not in c:
                 c[i] = 0
         results = []
-        if c[0] >= c[1]:
+        if c[0] > c[1]:
             results.append(0)
         elif c[1] > c[0]:
             results.append(1)
-        if c[2] >= c[3]:
+        else:
+            results.append(np.random.randint(0,2))
+        if c[2] > c[3]:
             results.append(2)
         elif c[3] > c[2]:
             results.append(3)
-
+        else:
+            results.append(np.random.randint(2,4))
+        # print(self.marker)
         return results
 
     def __call__(self, data):
