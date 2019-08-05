@@ -177,7 +177,7 @@ def threshold():
     plt.show()
 
 
-def main():
+def sw_main():
     system_model = model_load()
     sw = sliding_windows(model=system_model, threshold=0.8, dim=0, size=[60, 80, 100, 120], step=10)
     test_x, test_t = data_load()
@@ -194,5 +194,29 @@ def main():
     print('Accuracy: ', count/(len(test_t)*2) )
 
 
+def div_main():
+    pkl_file = open('divider.pkl', 'rb')
+    test_x, test_t = pickle.load(pkl_file)
+    pkl_file.close()
+    system_model = model_load()
+    # print(len(test_x), len(test_t))
+    # for i in range(len(test_x)):
+    #     print(test_x[i].shape, test_t[i])
+    pred_y = []
+    with torch.no_grad():
+        for inputs in test_x:
+            inputs = torch.from_numpy(inputs).type(torch.FloatTensor)
+            inputs = inputs.reshape(1, -1, model.input_size).to(model.device)
+            outputs = system_model(inputs)
+            outputs = F.softmax(outputs, dim=1)
+            probability, predicted = torch.max(outputs.data, 1)
+            pred_y.append(predicted.item())
+    count = 0
+    for i in range(len(pred_y)):
+        if pred_y[i] == test_t[i]:
+            count += 1
+    print('Accuracy: ', count / len(pred_y))
+
 if __name__ == '__main__':
-    main()
+    sw_main()
+    div_main()

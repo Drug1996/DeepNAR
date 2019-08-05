@@ -20,8 +20,8 @@ input_size = 36  # including 6 channels of 6 IMU sensors, totally 36 channels
 hidden_size = 256  # parameters for LSTM (Long Short Term Memory)
 num_layers = 2  # the depth of Deep-RNNs
 num_classes = 4
-batch_size = 120
-num_epochs = 50
+batch_size = 48
+num_epochs = 150
 learning_rate = 0.01
 dimension_interval = 1
 
@@ -66,21 +66,21 @@ def data_load():
         x_test += temp_test_x
         y_test +=temp_test_y
 
-        # zhong
-        labels = [label] * len(dataset1[action])
-        temp_train_x, temp_test_x, temp_train_y, temp_test_y = \
-            train_test_split(dataset1[action], labels, test_size=0.4, random_state=RANDOM_SEED_NUM)
-        x_train += temp_train_x
-        y_train += temp_train_y
-        temp_train_x, temp_test_x, temp_train_y, temp_test_y = \
-            train_test_split(temp_test_x, temp_test_y, test_size=0.5, random_state=RANDOM_SEED_NUM)
-        x_dev += temp_train_x
-        y_dev += temp_train_y
-        x_test += temp_test_x
-        y_test += temp_test_y
+        # # zhong
+        # labels = [label] * len(dataset1[action])
+        # temp_train_x, temp_test_x, temp_train_y, temp_test_y = \
+        #     train_test_split(dataset1[action], labels, test_size=0.4, random_state=RANDOM_SEED_NUM)
+        # x_train += temp_train_x
+        # y_train += temp_train_y
+        # temp_train_x, temp_test_x, temp_train_y, temp_test_y = \
+        #     train_test_split(temp_test_x, temp_test_y, test_size=0.5, random_state=RANDOM_SEED_NUM)
+        # x_dev += temp_train_x
+        # y_dev += temp_train_y
+        # x_test += temp_test_x
+        # y_test += temp_test_y
 
     # data augmentation
-        x_train, y_train = crop(x_train, y_train)
+    #     x_train, y_train = crop(x_train, y_train)
 
     # pad the data samples
     for i in range(len(x_train)):
@@ -163,7 +163,7 @@ def training_model(num):
                     training_loss.backward()
                     optimizer.step()
 
-                if (epoch + 1) % 5 == 0:
+                if (epoch + 1) % 2 == 0:
                     print('Test [{}/{}], Epoch [{}/{}], Loss: {:.4f}'
                           .format(t + 1, TEST_NUM, epoch + 1, num_epochs, training_loss.item()))
 

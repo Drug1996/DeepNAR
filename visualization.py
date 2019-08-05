@@ -46,14 +46,14 @@ def variance_and_bias_analysis(training_losseslist, test_accuracieslist):
     # print(training_losseslist)
     # print(test_accuracieslist)
     for i in range(test_num):
-        x1 = list(range(1, len(training_losseslist[i])+1))
+        x1 = list(j*2 for j in range(1, len(training_losseslist[i])+1))
         y1 = training_losseslist[i]
-        x2 = list(range(1, len(test_accuracieslist[i]) + 1))
+        x2 = list(j*2 for j in range(1, len(test_accuracieslist[i]) + 1))
         y2 = test_accuracieslist[i]
         # ax1 = fig.add_subplot(2, int(np.ceil(trials_num/2.0)), i+1)
         ax1 = fig.add_subplot(111)
         ax1.plot(x1, y1, marker='*', label='training loss')
-        ax1.set_xlabel(r'$batches\ /\ times$')
+        ax1.set_xlabel(r'$Epoch\ /\ times$')
         ax1.set_ylabel(r'$Loss$')
         ax1.legend(loc='upper left')
 
