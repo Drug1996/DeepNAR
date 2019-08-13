@@ -81,7 +81,7 @@ def data_load():
         y_test += temp_test_y
 
     # data augmentation
-        x_train, y_train = crop(x_train, y_train)
+    x_train, y_train = crop(x_train, y_train)
 
     # pad the data samples
     for i in range(len(x_train)):
@@ -118,6 +118,7 @@ def training_model(num):
 
     # Load the dataset
     X_training, Y_training, X_dev, Y_dev, X_test, Y_test = data_load()
+    print(len(X_training))
 
     modellist = []
     training_losseslist = []
