@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from collections import Counter
 import pickle
 import model
-from network import BiRNN
+from network import AttenBiRNN, BiRNN
 
 class sliding_windows:
     def __init__(self, model, threshold=0.8, dim=0, size=[], step=10):
@@ -92,6 +92,7 @@ class sliding_windows:
 
 def model_load():
     system_model = BiRNN(model.input_size, model.hidden_size, model.num_layers, model.num_classes).to(model.device)
+    # system_model = AttenBiRNN(model.input_size, model.hidden_size, model.num_layers, model.num_classes, model.sequence_length).to(device)
     system_model.load_state_dict(torch.load('DeepNAR_model.ckpt'))
     # print("Model's state_dict:")
     # for param_tensor in system_model.state_dict():

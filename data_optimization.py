@@ -15,3 +15,9 @@ def normalization(X):
         X[i] = (X[i] - min_value)/(max_value - min_value)
     return X
 
+
+def intra_iteration(x, iter_num=2):
+    y = []
+    for i in range(len(x)):
+        y.append(x[i][[i//iter_num for i in range(iter_num*x[i].shape[0])],:])  
+    return np.array(y)
